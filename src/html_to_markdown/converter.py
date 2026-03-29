@@ -3,9 +3,30 @@
 from bs4 import BeautifulSoup, NavigableString
 
 
+def _strip_non_content(soup: BeautifulSoup) -> None:
+    """Remove tags whose text should not appear in Markdown (CSS, JS, metadata)."""
+    for tag in soup.find_all(["script", "style", "noscript", "template"]):
+        tag.decompose()
+    div = soup.div
+    if div is not None:
+        for head in soup.find_all("head"):
+            for title in reversed(head.find_all("title")):
+                div.insert(0, title.extract())
+    for tag in soup.find_all("head"):
+        tag.decompose()
+    for tag in soup.find_all(["meta", "link", "base"]):
+        tag.decompose()
+
+
 def html_to_markdown(html: str) -> str:
-    """Convert HTML string to markdown. Accepts HTML string, returns markdown string."""
+    """Convert HTML string to markdown. Accepts HTML string, returns markdown string.
+
+    Drops non-content markup (e.g. ``<style>``, ``<script>``, ``<head>``, ``<meta>``)
+    before conversion so CSS and metadata do not appear in the output.
+    ``<title>`` (including from ``<head>``) is emitted as a level-1 heading.
+    """
     soup = BeautifulSoup(f"<div>{html}</div>", "html.parser")
+    _strip_non_content(soup)
     div = soup.div
     return "".join(_convert_node(child) for child in div.children).strip()
 
@@ -40,6 +61,9 @@ def _convert_node(node) -> str:
         return f"##### {children}\n\n"
     if tag_name == "h6":
         return f"###### {children}\n\n"
+    if tag_name == "title":
+        text = children.strip()
+        return f"# {text}\n\n" if text else ""
     if tag_name == "p":
         return f"{children}\n\n"
     if tag_name in ("strong", "b"):
