@@ -32,14 +32,14 @@ md = html_to_markdown("<p>Hello, <strong>world</strong>.</p>")
 print(md)
 ```
 
-Input is parsed as an HTML fragment: it is wrapped for parsing, then the outer wrapper is not part of the logical document you pass in—only your markup is converted.
+Input is parsed **as-is** with the built-in HTML parser (no synthetic wrapper). Conversion walks **`body`** when it exists; otherwise **`html`** children, otherwise top-level soup nodes (skipping doctypes). That covers full documents and typical fragments the parser normalizes under `html` / `body`.
 
 ### Stripped markup
 
 Before conversion, non-visible or non-body markup is removed so it does not leak into Markdown (for example CSS in `<style>` or metadata in `<head>`):
 
-- **Removed:** `script`, `style`, `noscript`, `template`, `head` (after titles are handled), `meta`, `link`, `base`
-- **Preserved:** `<title>` text from `<head>` is moved to the start of the fragment and emitted as a level-1 heading (`# …`), same as a document title in Markdown.
+- **Removed:** `script`, `style`, `noscript`, `template`, `head`, `meta`, `link`, `base`, and any remaining `title` tags after the document title is handled.
+- **Document title:** The **first** `<title>` inside `<head>` may be prepended as `# …` plus a blank line when its content is **plain text only** (no nested elements) and non-empty after whitespace normalization. Otherwise no title line is added.
 
 ## Supported elements
 
@@ -48,7 +48,7 @@ Rough mapping from HTML to Markdown:
 | HTML | Markdown |
 |------|----------|
 | `h1`–`h6` | ATX headings (`#` … `######`) |
-| `title` | Level-1 heading (`#` …); titles from `<head>` appear first |
+| `title` | Not emitted as a tag; first `<title>` in `<head>` may become a leading `# …` line (plain text only) |
 | `p` | Paragraphs (blank line after) |
 | `strong`, `b` | `**bold**` |
 | `em`, `i` | `*italic*` |

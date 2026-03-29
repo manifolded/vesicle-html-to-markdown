@@ -1,34 +1,72 @@
 """HTML to Markdown conversion."""
 
 from bs4 import BeautifulSoup, NavigableString
+from bs4.element import Doctype
+
+
+def _extract_title_markdown_prefix(soup: BeautifulSoup) -> str:
+    """First ``<title>`` in ``<head>`` as ``# text\\n\\n``, or ``""``.
+
+    Skips the prefix if the title contains nested elements or is empty after
+    normalizing whitespace. Always removes that ``<title>`` node from the tree.
+    """
+    head = soup.head
+    if head is None:
+        return ""
+    title = head.find("title")
+    if title is None:
+        return ""
+    if title.find(True) is not None:
+        title.decompose()
+        return ""
+    raw = title.get_text(separator=" ", strip=True)
+    text = " ".join(raw.split()) if raw else ""
+    title.decompose()
+    if not text:
+        return ""
+    return f"# {text}\n\n"
 
 
 def _strip_non_content(soup: BeautifulSoup) -> None:
     """Remove tags whose text should not appear in Markdown (CSS, JS, metadata)."""
     for tag in soup.find_all(["script", "style", "noscript", "template"]):
         tag.decompose()
-    div = soup.div
-    if div is not None:
-        for head in soup.find_all("head"):
-            for title in reversed(head.find_all("title")):
-                div.insert(0, title.extract())
     for tag in soup.find_all("head"):
         tag.decompose()
     for tag in soup.find_all(["meta", "link", "base"]):
         tag.decompose()
+    for tag in soup.find_all("title"):
+        tag.decompose()
+
+
+def _conversion_children(soup: BeautifulSoup) -> list:
+    """Top-level nodes to convert: ``body``, else ``html``, else soup roots."""
+    body = soup.body
+    if body is not None:
+        return list(body.children)
+    html_el = soup.html
+    if html_el is not None:
+        return list(html_el.children)
+    return [
+        c
+        for c in soup.children
+        if not isinstance(c, Doctype)
+    ]
 
 
 def html_to_markdown(html: str) -> str:
     """Convert HTML string to markdown. Accepts HTML string, returns markdown string.
 
-    Drops non-content markup (e.g. ``<style>``, ``<script>``, ``<head>``, ``<meta>``)
-    before conversion so CSS and metadata do not appear in the output.
-    ``<title>`` (including from ``<head>``) is emitted as a level-1 heading.
+    Parses the string as a document or fragment (no synthetic wrapper). Drops
+    non-content markup (e.g. ``<style>``, ``<script>``, ``<head>``, ``<meta>``)
+    before walking ``body`` (or fallback roots). The first ``<title>`` in
+    ``<head>`` may be prepended as a level-1 heading when it is plain text only.
     """
-    soup = BeautifulSoup(f"<div>{html}</div>", "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
+    prefix = _extract_title_markdown_prefix(soup)
     _strip_non_content(soup)
-    div = soup.div
-    return "".join(_convert_node(child) for child in div.children).strip()
+    body_md = "".join(_convert_node(child) for child in _conversion_children(soup))
+    return (prefix + body_md).strip()
 
 
 def _convert_node(node) -> str:
@@ -61,9 +99,6 @@ def _convert_node(node) -> str:
         return f"##### {children}\n\n"
     if tag_name == "h6":
         return f"###### {children}\n\n"
-    if tag_name == "title":
-        text = children.strip()
-        return f"# {text}\n\n" if text else ""
     if tag_name == "p":
         return f"{children}\n\n"
     if tag_name in ("strong", "b"):
