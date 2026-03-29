@@ -34,6 +34,13 @@ print(md)
 
 Input is parsed as an HTML fragment: it is wrapped for parsing, then the outer wrapper is not part of the logical document you pass in—only your markup is converted.
 
+### Stripped markup
+
+Before conversion, non-visible or non-body markup is removed so it does not leak into Markdown (for example CSS in `<style>` or metadata in `<head>`):
+
+- **Removed:** `script`, `style`, `noscript`, `template`, `head` (after titles are handled), `meta`, `link`, `base`
+- **Preserved:** `<title>` text from `<head>` is moved to the start of the fragment and emitted as a level-1 heading (`# …`), same as a document title in Markdown.
+
 ## Supported elements
 
 Rough mapping from HTML to Markdown:
@@ -41,6 +48,7 @@ Rough mapping from HTML to Markdown:
 | HTML | Markdown |
 |------|----------|
 | `h1`–`h6` | ATX headings (`#` … `######`) |
+| `title` | Level-1 heading (`#` …); titles from `<head>` appear first |
 | `p` | Paragraphs (blank line after) |
 | `strong`, `b` | `**bold**` |
 | `em`, `i` | `*italic*` |
