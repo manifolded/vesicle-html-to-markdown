@@ -62,6 +62,13 @@ Rough mapping from HTML to Markdown:
 
 Other tags have their children emitted without a specific wrapper when possible.
 
+## Testing
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
 ## Building
 
 This project uses [Hatchling](https://hatch.pypa.io/latest/) as the build backend. To produce a wheel:
