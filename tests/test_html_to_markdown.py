@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from html_to_markdown import html_to_markdown
 
 
@@ -69,5 +71,21 @@ def test_pre_with_language() -> None:
 
 def test_h2_heading() -> None:
     assert html_to_markdown("<h2>Sub</h2>") == "## Sub"
+
+
+@pytest.mark.parametrize("parser", ("lxml", "html.parser"))
+def test_parser_switch_paragraph_and_strong(parser: str) -> None:
+    assert (
+        html_to_markdown(
+            "<p>Hello, <strong>world</strong>.</p>",
+            parser=parser,
+        )
+        == "Hello,**world**."
+    )
+
+
+def test_invalid_parser_raises() -> None:
+    with pytest.raises(ValueError, match="parser must be"):
+        html_to_markdown("<p>x</p>", parser="xml")  # type: ignore[arg-type]
 
 

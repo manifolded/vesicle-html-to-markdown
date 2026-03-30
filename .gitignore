@@ -6,3 +6,5 @@ venv/
 .venv/
 .DS_Store
 examples/
+ToDo.md
+notes.md

@@ -1,7 +1,11 @@
 """HTML to Markdown conversion."""
 
+from typing import Literal
+
 from bs4 import BeautifulSoup, NavigableString
 from bs4.element import Doctype
+
+HtmlParser = Literal["lxml", "html.parser"]
 
 
 def _extract_title_markdown_prefix(soup: BeautifulSoup) -> str:
@@ -54,15 +58,20 @@ def _conversion_children(soup: BeautifulSoup) -> list:
     ]
 
 
-def html_to_markdown(html: str) -> str:
+def html_to_markdown(html: str, *, parser: HtmlParser = "html.parser") -> str:
     """Convert HTML string to markdown. Accepts HTML string, returns markdown string.
 
-    Parses the string as a document or fragment (no synthetic wrapper). Drops
+    Parses the string as a document or fragment (no synthetic wrapper) using
+    Beautiful Soup with ``parser`` (default ``\"html.parser\"``; or ``\"lxml\"``). Drops
     non-content markup (e.g. ``<style>``, ``<script>``, ``<head>``, ``<meta>``)
     before walking ``body`` (or fallback roots). The first ``<title>`` in
     ``<head>`` may be prepended as a level-1 heading when it is plain text only.
     """
-    soup = BeautifulSoup(html, "lxml")
+    if parser not in ("lxml", "html.parser"):
+        raise ValueError(
+            f"parser must be 'lxml' or 'html.parser', got {parser!r}"
+        )
+    soup = BeautifulSoup(html, parser)
     prefix = _extract_title_markdown_prefix(soup)
     _strip_non_content(soup)
     body_md = "".join(_convert_node(child) for child in _conversion_children(soup))
