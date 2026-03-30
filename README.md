@@ -42,8 +42,7 @@ Input is parsed **as-is** with Beautiful Soup (no synthetic wrapper). The defaul
 
 Before conversion, non-visible or non-body markup is removed so it does not leak into Markdown (for example CSS in `<style>` or metadata in `<head>`):
 
-- **Removed:** `script`, `style`, `noscript`, `template`, `head`, `meta`, `link`, `base`, and any remaining `title` tags after the document title is handled.
-- **Document title:** The **first** `<title>` inside `<head>` may be prepended as `# …` plus a blank line when its content is **plain text only** (no nested elements) and non-empty after whitespace normalization. Otherwise no title line is added.
+- **Removed:** `script`, `style`, `noscript`, `template`, `head`, `meta`, `link`, `base`, and `title`.
 
 ## Supported elements
 
@@ -52,7 +51,6 @@ Rough mapping from HTML to Markdown:
 | HTML | Markdown |
 |------|----------|
 | `h1`–`h6` | ATX headings (`#` … `######`) |
-| `title` | Not emitted as a tag; first `<title>` in `<head>` may become a leading `# …` line (plain text only) |
 | `p` | Paragraphs (blank line after) |
 | `strong`, `b` | `**bold**` |
 | `em`, `i` | `*italic*` |

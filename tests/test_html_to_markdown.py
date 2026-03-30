@@ -25,7 +25,7 @@ def test_plain_text_fragment() -> None:
     assert html_to_markdown("Hello") == "Hello"
 
 
-def test_head_title_prepended_and_style_stripped() -> None:
+def test_head_and_style_stripped() -> None:
     html = (
         "<html><head>"
         '<title>My Page</title>'
@@ -33,7 +33,8 @@ def test_head_title_prepended_and_style_stripped() -> None:
         "</head><body><p>Body text</p></body></html>"
     )
     out = html_to_markdown(html)
-    assert out == "# My Page\n\nBody text"
+    assert out == "Body text"
+    assert "My Page" not in out
     assert "@media" not in out
     assert "color: red" not in out
 

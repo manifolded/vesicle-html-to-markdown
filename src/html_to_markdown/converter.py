@@ -8,29 +8,6 @@ from bs4.element import Doctype
 HtmlParser = Literal["lxml", "html.parser"]
 
 
-def _extract_title_markdown_prefix(soup: BeautifulSoup) -> str:
-    """First ``<title>`` in ``<head>`` as ``# text\\n\\n``, or ``""``.
-
-    Skips the prefix if the title contains nested elements or is empty after
-    normalizing whitespace. Always removes that ``<title>`` node from the tree.
-    """
-    head = soup.head
-    if head is None:
-        return ""
-    title = head.find("title")
-    if title is None:
-        return ""
-    if title.find(True) is not None:
-        title.decompose()
-        return ""
-    raw = title.get_text(separator=" ", strip=True)
-    text = " ".join(raw.split()) if raw else ""
-    title.decompose()
-    if not text:
-        return ""
-    return f"# {text}\n\n"
-
-
 def _strip_non_content(soup: BeautifulSoup) -> None:
     """Remove tags whose text should not appear in Markdown (CSS, JS, metadata)."""
     for tag in soup.find_all(["script", "style", "noscript", "template"]):
@@ -64,18 +41,16 @@ def html_to_markdown(html: str, *, parser: HtmlParser = "html.parser") -> str:
     Parses the string as a document or fragment (no synthetic wrapper) using
     Beautiful Soup with ``parser`` (default ``\"html.parser\"``; or ``\"lxml\"``). Drops
     non-content markup (e.g. ``<style>``, ``<script>``, ``<head>``, ``<meta>``)
-    before walking ``body`` (or fallback roots). The first ``<title>`` in
-    ``<head>`` may be prepended as a level-1 heading when it is plain text only.
+    before walking ``body`` (or fallback roots).
     """
     if parser not in ("lxml", "html.parser"):
         raise ValueError(
             f"parser must be 'lxml' or 'html.parser', got {parser!r}"
         )
     soup = BeautifulSoup(html, parser)
-    prefix = _extract_title_markdown_prefix(soup)
     _strip_non_content(soup)
     body_md = "".join(_convert_node(child) for child in _conversion_children(soup))
-    return (prefix + body_md).strip()
+    return body_md.strip()
 
 
 def _convert_node(node) -> str:
