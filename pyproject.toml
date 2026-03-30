@@ -11,6 +11,7 @@ license = { file = "LICENSE" }
 requires-python = ">=3.9"
 dependencies = [
     "beautifulsoup4>=4.12",
+    "lxml>=4.9",
 ]
 
 [project.optional-dependencies]

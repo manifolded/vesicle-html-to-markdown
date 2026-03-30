@@ -5,7 +5,7 @@ Small Python library that turns HTML strings into Markdown.
 ## Requirements
 
 - Python 3.9+
-- [Beautiful Soup 4](https://www.crummy.com/software/BeautifulSoup/) (declared in `pyproject.toml`)
+- [Beautiful Soup 4](https://www.crummy.com/software/BeautifulSoup/) with the **lxml** parser (see [`pyproject.toml`](pyproject.toml))
 
 ## Installation
 
@@ -32,7 +32,7 @@ md = html_to_markdown("<p>Hello, <strong>world</strong>.</p>")
 print(md)
 ```
 
-Input is parsed **as-is** with the built-in HTML parser (no synthetic wrapper). Conversion walks **`body`** when it exists; otherwise **`html`** children, otherwise top-level soup nodes (skipping doctypes). That covers full documents and typical fragments the parser normalizes under `html` / `body`.
+Input is parsed **as-is** with Beautiful Soup using the **lxml** parser (no synthetic wrapper). Conversion walks **`body`** when it exists; otherwise **`html`** children, otherwise top-level soup nodes (skipping doctypes). That covers full documents and typical fragments the parser normalizes under `html` / `body`.
 
 ### Stripped markup
 

@@ -62,7 +62,7 @@ def html_to_markdown(html: str) -> str:
     before walking ``body`` (or fallback roots). The first ``<title>`` in
     ``<head>`` may be prepended as a level-1 heading when it is plain text only.
     """
-    soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html, "lxml")
     prefix = _extract_title_markdown_prefix(soup)
     _strip_non_content(soup)
     body_md = "".join(_convert_node(child) for child in _conversion_children(soup))
