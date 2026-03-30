@@ -38,6 +38,32 @@ md = html_to_markdown("<p>Hello</p>", parser="lxml")
 
 Input is parsed **as-is** with Beautiful Soup (no synthetic wrapper). The default is ``parser="html.parser"``; pass ``parser="lxml"`` to use lxml instead. Tree shape and whitespace can differ slightly between parsers. Conversion walks **`body`** when it exists; otherwise **`html`** children, otherwise top-level soup nodes (skipping doctypes). That covers full documents and typical fragments the parser normalizes under `html` / `body`.
 
+### Composable conversion (low-level API)
+
+You can mirror ``html_to_markdown`` with the same building blocks the library uses internally:
+
+```python
+from bs4 import BeautifulSoup
+
+from html_to_markdown import (
+    HtmlParser,
+    conversion_children,
+    convert_node,
+    strip_non_content,
+)
+
+html = "<p>Hello, <strong>world</strong>.</p>"
+parser: HtmlParser = "html.parser"
+soup = BeautifulSoup(html, parser)
+strip_non_content(soup)
+md = "".join(convert_node(child) for child in conversion_children(soup)).strip()
+```
+
+- ``strip_non_content`` mutates the soup in place (remove scripts, styles, head, etc.).
+- ``conversion_children`` takes a **``BeautifulSoup``** instance only (not an arbitrary element tag as root).
+- ``convert_node`` accepts Beautiful Soup **tree nodes** (strings or tags), including a tag root if you want one subtree as markdown.
+- ``HtmlParser`` is exported for type hints on ``parser`` when calling ``BeautifulSoup(..., parser=...)``.
+
 ### Stripped markup
 
 Before conversion, non-visible or non-body markup is removed so it does not leak into Markdown (for example CSS in `<style>` or metadata in `<head>`):

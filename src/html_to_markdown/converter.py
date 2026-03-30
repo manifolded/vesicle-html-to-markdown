@@ -3,13 +3,17 @@
 from typing import Literal
 
 from bs4 import BeautifulSoup, NavigableString
-from bs4.element import Doctype
+from bs4.element import Doctype, PageElement
 
 HtmlParser = Literal["lxml", "html.parser"]
 
 
-def _strip_non_content(soup: BeautifulSoup) -> None:
-    """Remove tags whose text should not appear in Markdown (CSS, JS, metadata)."""
+def strip_non_content(soup: BeautifulSoup) -> None:
+    """Remove tags whose text should not appear in Markdown (CSS, JS, metadata).
+
+    Mutates ``soup`` in place. Call before :func:`conversion_children` when
+    mirroring :func:`html_to_markdown`.
+    """
     for tag in soup.find_all(["script", "style", "noscript", "template"]):
         tag.decompose()
     for tag in soup.find_all("head"):
@@ -20,8 +24,13 @@ def _strip_non_content(soup: BeautifulSoup) -> None:
         tag.decompose()
 
 
-def _conversion_children(soup: BeautifulSoup) -> list:
-    """Top-level nodes to convert: ``body``, else ``html``, else soup roots."""
+def conversion_children(soup: BeautifulSoup) -> list[PageElement]:
+    """Top-level tree nodes to convert for a parsed document (public building block).
+
+    Returns ``body``'s children if ``body`` exists, else ``html``'s children,
+    else top-level soup roots (skipping doctypes). Only accepts a
+    :class:`~bs4.BeautifulSoup` instance, not an element tag as root.
+    """
     body = soup.body
     if body is not None:
         return list(body.children)
@@ -48,12 +57,17 @@ def html_to_markdown(html: str, *, parser: HtmlParser = "html.parser") -> str:
             f"parser must be 'lxml' or 'html.parser', got {parser!r}"
         )
     soup = BeautifulSoup(html, parser)
-    _strip_non_content(soup)
-    body_md = "".join(_convert_node(child) for child in _conversion_children(soup))
+    strip_non_content(soup)
+    body_md = "".join(convert_node(child) for child in conversion_children(soup))
     return body_md.strip()
 
 
-def _convert_node(node) -> str:
+def convert_node(node: PageElement) -> str:
+    """Convert a single Beautiful Soup tree node to markdown (public building block).
+
+    Handles :class:`~bs4.element.NavigableString` and tags; unknown or empty
+    nodes yield ``\"\"``. For a subtree, pass the root tag from the parsed tree.
+    """
     if isinstance(node, NavigableString):
         text = str(node).strip()
         return text or ""
@@ -69,7 +83,7 @@ def _convert_node(node) -> str:
         for child in node.children
         if not isinstance(child, NavigableString) or str(child).strip() != ""
     ]
-    children = "".join(_convert_node(child) for child in child_nodes)
+    children = "".join(convert_node(child) for child in child_nodes)
 
     if tag_name == "h1":
         return f"# {children}\n\n"
@@ -104,7 +118,7 @@ def _convert_node(node) -> str:
         items = []
         for idx, li in enumerate(node.find_all("li", recursive=False)):
             marker = f"{idx + 1}." if tag_name == "ol" else "-"
-            items.append(f"{marker} {_convert_node(li).strip()}\n")
+            items.append(f"{marker} {convert_node(li).strip()}\n")
         return "\n" + "".join(items) + "\n"
     if tag_name == "li":
         return children.strip()
